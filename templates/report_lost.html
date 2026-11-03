@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Report Lost Item | Smart Campus Lost & Found Matcher{% endblock %}
+
+{% block content %}
+<div class="container container-sm">
+  <div class="card form-card">
+    <div class="card-header border-bottom-danger">
+      <div class="header-icon-box icon-lost">🔍</div>
+      <div>
+        <h2 class="card-title">Report a Lost Item</h2>
+        <p class="card-subtitle">Fill in details about the item you misplaced. Our NLP engine will cross-check found reports.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('report_lost') }}" class="styled-form">
+      <!-- Item Name / Title -->
+      <div class="form-group">
+        <label for="title" class="form-label">Item Name / Title <span class="required">*</span></label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          class="form-control"
+          placeholder="e.g., Space Grey iPad Air with black magnetic case"
+          value="{{ form_data.title if form_data else '' }}"
+          required
+        >
+        <small class="form-hint">Be specific (brand, model, identifying characteristics).</small>
+      </div>
+
+      <!-- Category & Color Grid -->
+      <div class="form-row">
+        <div class="form-group col-half">
+          <label for="category" class="form-label">Category <span class="required">*</span></label>
+          <select id="category" name="category" class="form-select" required>
+            <option value="" disabled {% if not form_data or not form_data.category %}selected{% endif %}>Select category...</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if form_data and form_data.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group col-half">
+          <label for="color" class="form-label">Colour / Primary Color <span class="required">*</span></label>
+          <input
+            type="text"
+            id="color"
+            name="color"
+            class="form-control"
+            placeholder="e.g., Midnight Blue, Matte Black"
+            value="{{ form_data.color if form_data else '' }}"
+            required
+          >
+        </div>
+      </div>
+
+      <!-- Location & Date Grid -->
+      <div class="form-row">
+        <div class="form-group col-half">
+          <label for="location" class="form-label">Last Seen Location <span class="required">*</span></label>
+          <input
+            type="text"
+            id="location"
+            name="location"
+            class="form-control"
+            placeholder="e.g., Library 3rd Floor Quiet Study, Room 304"
+            value="{{ form_data.location if form_data else '' }}"
+            required
+          >
+        </div>
+
+        <div class="form-group col-half">
+          <label for="date_reported" class="form-label">Date Lost <span class="required">*</span></label>
+          <input
+            type="date"
+            id="date_reported"
+            name="date_reported"
+            class="form-control"
+            value="{{ form_data.date_reported if form_data else '' }}"
+            required
+          >
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label for="description" class="form-label">Detailed Description <span class="required">*</span></label>
+        <textarea
+          id="description"
+          name="description"
+          rows="4"
+          class="form-control"
+          placeholder="Describe scratches, stickers, contents, brand markings, or unique identifiers that distinguish your item..."
+          required
+        >{{ form_data.description if form_data else '' }}</textarea>
+        <small class="form-hint">The more descriptive details you provide, the higher our NLP matcher confidence will be!</small>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="form-group">
+        <label for="contact_info" class="form-label">Student Contact Information (Email / Phone)</label>
+        <input
+          type="text"
+          id="contact_info"
+          name="contact_info"
+          class="form-control"
+          placeholder="e.g., alex.taylor@campus.edu or (555) 019-2831"
+          value="{{ form_data.contact_info if form_data else '' }}"
+        >
+        <small class="form-hint">Used by finders or campus security to reach you when a match is verified.</small>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger btn-block">
+          Submit Lost Item Report
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn-outline btn-block mt-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

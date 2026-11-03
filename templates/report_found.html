@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Report Found Item | Smart Campus Lost & Found Matcher{% endblock %}
+
+{% block content %}
+<div class="container container-sm">
+  <div class="card form-card">
+    <div class="card-header border-bottom-primary">
+      <div class="header-icon-box icon-found">📦</div>
+      <div>
+        <h2 class="card-title">Report a Found Item</h2>
+        <p class="card-subtitle">Found something on campus? Log it here so our matching system can notify its owner.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('report_found') }}" class="styled-form">
+      <!-- Item Name / Title -->
+      <div class="form-group">
+        <label for="title" class="form-label">Item Name / Title <span class="required">*</span></label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          class="form-control"
+          placeholder="e.g., Apple iPad tablet in black case"
+          value="{{ form_data.title if form_data else '' }}"
+          required
+        >
+        <small class="form-hint">Brief title describing what you found.</small>
+      </div>
+
+      <!-- Category & Color Grid -->
+      <div class="form-row">
+        <div class="form-group col-half">
+          <label for="category" class="form-label">Category <span class="required">*</span></label>
+          <select id="category" name="category" class="form-select" required>
+            <option value="" disabled {% if not form_data or not form_data.category %}selected{% endif %}>Select category...</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if form_data and form_data.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group col-half">
+          <label for="color" class="form-label">Colour / Primary Color <span class="required">*</span></label>
+          <input
+            type="text"
+            id="color"
+            name="color"
+            class="form-control"
+            placeholder="e.g., Space Grey / Black"
+            value="{{ form_data.color if form_data else '' }}"
+            required
+          >
+        </div>
+      </div>
+
+      <!-- Location & Date Grid -->
+      <div class="form-row">
+        <div class="form-group col-half">
+          <label for="location" class="form-label">Found Location <span class="required">*</span></label>
+          <input
+            type="text"
+            id="location"
+            name="location"
+            class="form-control"
+            placeholder="e.g., Student Center cafeteria bench, near vending machines"
+            value="{{ form_data.location if form_data else '' }}"
+            required
+          >
+        </div>
+
+        <div class="form-group col-half">
+          <label for="date_reported" class="form-label">Date Found <span class="required">*</span></label>
+          <input
+            type="date"
+            id="date_reported"
+            name="date_reported"
+            class="form-control"
+            value="{{ form_data.date_reported if form_data else '' }}"
+            required
+          >
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label for="description" class="form-label">Detailed Description <span class="required">*</span></label>
+        <textarea
+          id="description"
+          name="description"
+          rows="4"
+          class="form-control"
+          placeholder="Describe the condition, appearance, stickers, brand marks, or custody location (e.g., turned in to Campus Security desk)..."
+          required
+        >{{ form_data.description if form_data else '' }}</textarea>
+        <small class="form-hint">Detailed descriptions help our matching algorithm identify the rightful owner.</small>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="form-group">
+        <label for="contact_info" class="form-label">Finder Contact or Item Holding Location</label>
+        <input
+          type="text"
+          id="contact_info"
+          name="contact_info"
+          class="form-control"
+          placeholder="e.g., Handed over to Campus Security Desk / sam.student@campus.edu"
+          value="{{ form_data.contact_info if form_data else '' }}"
+        >
+        <small class="form-hint">Where the owner can collect their item, or your email/phone.</small>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-block">
+          Submit Found Item Report
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn-outline btn-block mt-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}All Campus Items | Smart Campus Lost & Found Matcher{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Campus Lost & Found Catalog</h1>
+      <p class="page-subtitle">Browse through lost and found belongings reported across the college.</p>
+    </div>
+    <div class="header-actions">
+      <a href="{{ url_for('report_lost') }}" class="btn btn-danger btn-sm">+ Report Lost</a>
+      <a href="{{ url_for('report_found') }}" class="btn btn-primary btn-sm">+ Report Found</a>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="filter-card">
+    <form method="GET" action="{{ url_for('items') }}" class="filter-form">
+      <div class="filter-row">
+        <!-- Search text input -->
+        <div class="filter-group flex-2">
+          <label for="filter-search" class="filter-label">Search Keywords</label>
+          <input
+            type="text"
+            id="filter-search"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Search by name, color, description, location..."
+            class="form-control"
+          >
+        </div>
+
+        <!-- Category filter -->
+        <div class="filter-group">
+          <label for="filter-category" class="filter-label">Category</label>
+          <select id="filter-category" name="category" class="form-select">
+            <option value="all" {% if current_category == 'all' %}selected{% endif %}>All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Status filter -->
+        <div class="filter-group">
+          <label for="filter-status" class="filter-label">Status</label>
+          <select id="filter-status" name="status" class="form-select">
+            <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Statuses</option>
+            <option value="Active" {% if current_status == 'Active' %}selected{% endif %}>Active Only</option>
+            <option value="Returned" {% if current_status == 'Returned' %}selected{% endif %}>Returned / Resolved</option>
+          </select>
+        </div>
+
+        <div class="filter-group filter-actions">
+          <button type="submit" class="btn btn-primary">Filter</button>
+          <a href="{{ url_for('items') }}" class="btn btn-outline">Reset</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- View Mode Switcher (All, Lost Only, Found Only) -->
+  <div class="tabs-container">
+    <div class="tabs-header">
+      <button class="tab-btn active" data-target="all-sections">All Items ({{ lost_items|length + found_items|length }})</button>
+      <button class="tab-btn" data-target="lost-section">Lost Items ({{ lost_items|length }})</button>
+      <button class="tab-btn" data-target="found-section">Found Items ({{ found_items|length }})</button>
+    </div>
+  </div>
+
+  <!-- Section 1: Lost Items Section -->
+  <div class="catalog-section" id="lost-section">
+    <div class="catalog-header">
+      <div class="catalog-title-wrap">
+        <span class="badge tag-lost">LOST ITEMS</span>
+        <h2>Items Reported as Lost ({{ lost_items|length }})</h2>
+      </div>
+      <a href="{{ url_for('report_lost') }}" class="btn btn-xs btn-outline-danger">+ Add Lost Report</a>
+    </div>
+
+    {% if lost_items %}
+    <div class="catalog-grid">
+      {% for item in lost_items %}
+      <div class="item-card item-card-lost {% if item.status == 'Returned' %}item-resolved{% endif %}">
+        <div class="item-card-top">
+          <div class="item-badges">
+            <span class="badge tag-lost">Lost</span>
+            <span class="badge badge-category">{{ item.category }}</span>
+          </div>
+          <span class="badge {% if item.status == 'Returned' %}badge-success{% else %}badge-warning{% endif %}">
+            {{ item.status }}
+          </span>
+        </div>
+
+        <h3 class="item-card-title">
+          <a href="{{ url_for('item_detail', item_id=item.id) }}">{{ item.title }}</a>
+        </h3>
+
+        <p class="item-card-desc">{{ item.description }}</p>
+
+        <div class="item-card-specs">
+          <div class="spec-row">
+            <span class="spec-label">🎨 Colour:</span>
+            <span class="spec-val">{{ item.color }}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">📍 Location:</span>
+            <span class="spec-val">{{ item.location }}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">📅 Date:</span>
+            <span class="spec-val">{{ item.date_reported }}</span>
+          </div>
+          {% if item.contact_info %}
+          <div class="spec-row">
+            <span class="spec-label">📞 Contact:</span>
+            <span class="spec-val">{{ item.contact_info }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="item-card-footer">
+          <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-sm btn-outline">
+            ⚡ Check Matches
+          </a>
+          <form action="{{ url_for('update_status', item_id=item.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="status" value="{{ 'Active' if item.status == 'Returned' else 'Returned' }}">
+            <button type="submit" class="btn btn-sm {% if item.status == 'Returned' %}btn-outline{% else %}btn-success{% endif %}">
+              {% if item.status == 'Returned' %}Reactivate{% else %}Mark Returned{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No lost items matched your search filters.</p>
+      <a href="{{ url_for('report_lost') }}" class="btn btn-sm btn-danger">+ Report Lost Item</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Section 2: Found Items Section -->
+  <div class="catalog-section mt-5" id="found-section">
+    <div class="catalog-header">
+      <div class="catalog-title-wrap">
+        <span class="badge tag-found">FOUND ITEMS</span>
+        <h2>Items Reported as Found ({{ found_items|length }})</h2>
+      </div>
+      <a href="{{ url_for('report_found') }}" class="btn btn-xs btn-outline-primary">+ Add Found Report</a>
+    </div>
+
+    {% if found_items %}
+    <div class="catalog-grid">
+      {% for item in found_items %}
+      <div class="item-card item-card-found {% if item.status == 'Returned' %}item-resolved{% endif %}">
+        <div class="item-card-top">
+          <div class="item-badges">
+            <span class="badge tag-found">Found</span>
+            <span class="badge badge-category">{{ item.category }}</span>
+          </div>
+          <span class="badge {% if item.status == 'Returned' %}badge-success{% else %}badge-warning{% endif %}">
+            {{ item.status }}
+          </span>
+        </div>
+
+        <h3 class="item-card-title">
+          <a href="{{ url_for('item_detail', item_id=item.id) }}">{{ item.title }}</a>
+        </h3>
+
+        <p class="item-card-desc">{{ item.description }}</p>
+
+        <div class="item-card-specs">
+          <div class="spec-row">
+            <span class="spec-label">🎨 Colour:</span>
+            <span class="spec-val">{{ item.color }}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">📍 Location:</span>
+            <span class="spec-val">{{ item.location }}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">📅 Date:</span>
+            <span class="spec-val">{{ item.date_reported }}</span>
+          </div>
+          {% if item.contact_info %}
+          <div class="spec-row">
+            <span class="spec-label">📞 Custody:</span>
+            <span class="spec-val">{{ item.contact_info }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="item-card-footer">
+          <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-sm btn-outline">
+            ⚡ Check Matches
+          </a>
+          <form action="{{ url_for('update_status', item_id=item.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="status" value="{{ 'Active' if item.status == 'Returned' else 'Returned' }}">
+            <button type="submit" class="btn btn-sm {% if item.status == 'Returned' %}btn-outline{% else %}btn-success{% endif %}">
+              {% if item.status == 'Returned' %}Reactivate{% else %}Mark Returned{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No found items matched your search filters.</p>
+      <a href="{{ url_for('report_found') }}" class="btn btn-sm btn-primary">+ Report Found Item</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

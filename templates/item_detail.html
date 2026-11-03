@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.title }} | Smart Campus Lost & Found Matcher{% endblock %}
+
+{% block content %}
+<div class="container container-md">
+  <!-- Back navigation -->
+  <div class="mb-3">
+    <a href="{{ url_for('items') }}" class="btn-link">&larr; Back to Catalog</a>
+  </div>
+
+  <!-- Item Detail Card -->
+  <div class="card item-focus-card {% if item.type == 'lost' %}border-top-danger{% else %}border-top-primary{% endif %}">
+    <div class="item-focus-header">
+      <div>
+        <div class="item-badges mb-2">
+          <span class="badge {% if item.type == 'lost' %}tag-lost{% else %}tag-found{% endif %}">
+            {{ item.type|upper }}
+          </span>
+          <span class="badge badge-category">{{ item.category }}</span>
+          <span class="badge {% if item.status == 'Returned' %}badge-success{% else %}badge-warning{% endif %}">
+            {{ item.status }}
+          </span>
+        </div>
+        <h1 class="item-focus-title">{{ item.title }}</h1>
+      </div>
+      <div class="item-focus-actions">
+        <form action="{{ url_for('update_status', item_id=item.id) }}" method="POST">
+          <input type="hidden" name="status" value="{{ 'Active' if item.status == 'Returned' else 'Returned' }}">
+          <button type="submit" class="btn {% if item.status == 'Returned' %}btn-outline{% else %}btn-success{% endif %}">
+            {% if item.status == 'Returned' %}Reopen Report{% else %}✓ Mark as Returned{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="item-focus-body">
+      <h3 class="section-subheading">Description</h3>
+      <p class="item-focus-desc">{{ item.description }}</p>
+
+      <div class="item-focus-meta-grid">
+        <div class="meta-box">
+          <span class="meta-label">Colour</span>
+          <span class="meta-value">🎨 {{ item.color }}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label">Location</span>
+          <span class="meta-value">📍 {{ item.location }}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label">Date Reported</span>
+          <span class="meta-value">📅 {{ item.date_reported }}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label">Contact / Custody</span>
+          <span class="meta-value">📞 {{ item.contact_info or 'Not specified' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- On-the-fly candidate matches for this item -->
+  <div class="mt-5">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">
+          ⚡ Smart Potential Matches for this {{ item.type|capitalize }} Item
+        </h2>
+        <p class="section-subtitle">
+          Comparing against active {{ 'found' if item.type == 'lost' else 'lost' }} items in the campus database.
+        </p>
+      </div>
+    </div>
+
+    {% if matches %}
+    <div class="catalog-grid">
+      {% for m in matches %}
+      <div class="item-card {% if item.type == 'lost' %}item-card-found{% else %}item-card-lost{% endif %}">
+        <div class="item-card-top">
+          <span class="score-badge {% if m.percentage >= 70 %}score-high{% elif m.percentage >= 40 %}score-med{% else %}score-low{% endif %}">
+            {{ m.percentage }}% Similarity
+          </span>
+          {% if m.category_match %}
+          <span class="badge badge-success">Category Match</span>
+          {% endif %}
+        </div>
+
+        <h3 class="item-card-title mt-2">
+          <a href="{{ url_for('item_detail', item_id=m.matched_item.id) }}">
+            {{ m.matched_item.title }}
+          </a>
+        </h3>
+
+        <p class="item-card-desc">{{ m.matched_item.description }}</p>
+
+        <div class="item-card-specs">
+          <div class="spec-row">
+            <span class="spec-label">🎨 Colour:</span>
+            <span class="spec-val">{{ m.matched_item.color }}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">📍 Location:</span>
+            <span class="spec-val">{{ m.matched_item.location }}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">📅 Date:</span>
+            <span class="spec-val">{{ m.matched_item.date_reported }}</span>
+          </div>
+          {% if m.matched_item.contact_info %}
+          <div class="spec-row">
+            <span class="spec-label">📞 Contact:</span>
+            <span class="spec-val">{{ m.matched_item.contact_info }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if m.shared_keywords %}
+        <div class="shared-keywords mt-2">
+          <small class="text-muted">Keywords:</small>
+          {% for kw in m.shared_keywords %}
+            <span class="badge-keyword">{{ kw }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="item-card-footer mt-3">
+          <a href="{{ url_for('item_detail', item_id=m.matched_item.id) }}" class="btn btn-sm btn-outline">
+            View Matching Item
+          </a>
+          <form action="{{ url_for('update_status', item_id=m.matched_item.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="status" value="Returned">
+            <button type="submit" class="btn btn-sm btn-success">Mark as Returned</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No high-confidence matches found yet for this item. As more students submit reports, check back here!</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
