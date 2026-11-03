@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Smart Campus Lost & Found Matcher{% endblock %}
+
+{% block content %}
+<div class="container">
+  <!-- Hero Section -->
+  <section class="hero-card">
+    <div class="hero-text">
+      <span class="badge badge-pill badge-primary mb-2">Campus Community Assistant</span>
+      <h1 class="hero-title">Find what you lost. Return what you found.</h1>
+      <p class="hero-subtitle">
+        Powered by TF-IDF & Cosine Similarity machine learning to automatically connect lost property reports with reported finds across campus buildings, labs, and dorms.
+      </p>
+      <div class="hero-cta">
+        <a href="{{ url_for('report_lost') }}" class="btn btn-danger btn-lg">
+          <span class="btn-icon">🔍</span> Report Lost Item
+        </a>
+        <a href="{{ url_for('report_found') }}" class="btn btn-primary btn-lg">
+          <span class="btn-icon">📦</span> Report Found Item
+        </a>
+        <a href="{{ url_for('matches') }}" class="btn btn-outline btn-lg">
+          <span class="btn-icon">⚡</span> View Smart Matches ({{ total_matches_count }})
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Metrics Overview Cards -->
+  <section class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-lost">🔍</div>
+      <div class="stat-info">
+        <span class="stat-label">Total Lost Items</span>
+        <h3 class="stat-value" id="stat-lost-count">{{ stats.total_lost }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-found">📦</div>
+      <div class="stat-info">
+        <span class="stat-label">Total Found Items</span>
+        <h3 class="stat-value" id="stat-found-count">{{ stats.total_found }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-matches">⚡</div>
+      <div class="stat-info">
+        <span class="stat-label">AI Potential Matches</span>
+        <h3 class="stat-value text-accent">{{ total_matches_count }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-returned">🎉</div>
+      <div class="stat-info">
+        <span class="stat-label">Returned to Owner</span>
+        <h3 class="stat-value text-success" id="stat-returned-count">{{ stats.total_returned }}</h3>
+      </div>
+    </div>
+  </section>
+
+  <!-- High-Confidence Matches Section -->
+  {% if top_matches %}
+  <section class="section mb-5">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">⚡ High-Confidence Matches Detected</h2>
+        <p class="section-subtitle">Our TF-IDF model found high semantic overlap between these items.</p>
+      </div>
+      <a href="{{ url_for('matches') }}" class="btn btn-sm btn-outline">See All Matches &rarr;</a>
+    </div>
+
+    <div class="matches-grid">
+      {% for m in top_matches %}
+      <div class="match-card">
+        <div class="match-score-pill">
+          <span class="score-badge {% if m.percentage >= 70 %}score-high{% elif m.percentage >= 40 %}score-med{% else %}score-low{% endif %}">
+            {{ m.percentage }}% Match
+          </span>
+        </div>
+
+        <div class="match-pair">
+          <div class="match-column">
+            <span class="tag-type tag-lost">LOST</span>
+            <h4 class="item-title">{{ m.lost_item.title }}</h4>
+            <div class="item-meta">
+              <span><strong>Category:</strong> {{ m.lost_item.category }}</span>
+              <span><strong>Location:</strong> {{ m.lost_item.location }}</span>
+              <span><strong>Colour:</strong> {{ m.lost_item.color }}</span>
+            </div>
+            <a href="{{ url_for('item_detail', item_id=m.lost_item.id) }}" class="btn-link">View details</a>
+          </div>
+
+          <div class="match-divider">
+            <span class="divider-icon">⚡</span>
+          </div>
+
+          <div class="match-column">
+            <span class="tag-type tag-found">FOUND</span>
+            <h4 class="item-title">{{ m.found_item.title }}</h4>
+            <div class="item-meta">
+              <span><strong>Category:</strong> {{ m.found_item.category }}</span>
+              <span><strong>Location:</strong> {{ m.found_item.location }}</span>
+              <span><strong>Colour:</strong> {{ m.found_item.color }}</span>
+            </div>
+            <a href="{{ url_for('item_detail', item_id=m.found_item.id) }}" class="btn-link">View details</a>
+          </div>
+        </div>
+
+        {% if m.shared_keywords %}
+        <div class="shared-keywords">
+          <small class="text-muted">Common keywords:</small>
+          {% for kw in m.shared_keywords %}
+            <span class="badge-keyword">{{ kw }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Recent Reports (Lost and Found tabs/columns) -->
+  <section class="section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">📋 Recent Campus Reports</h2>
+        <p class="section-subtitle">Latest items reported by students and campus staff.</p>
+      </div>
+      <a href="{{ url_for('items') }}" class="btn btn-sm btn-outline">Browse All Items &rarr;</a>
+    </div>
+
+    <div class="two-column-grid">
+      <!-- Recent Lost Column -->
+      <div class="column-card">
+        <div class="column-header column-lost-header">
+          <h3>🔍 Recently Lost Items</h3>
+          <span class="badge tag-lost">{{ recent_lost|length }} shown</span>
+        </div>
+        <div class="column-body">
+          {% if recent_lost %}
+            <div class="item-list">
+              {% for item in recent_lost %}
+              <div class="item-mini-card">
+                <div class="mini-card-header">
+                  <a href="{{ url_for('item_detail', item_id=item.id) }}" class="mini-card-title">{{ item.title }}</a>
+                  <span class="badge {% if item.status == 'Returned' %}badge-success{% else %}badge-warning{% endif %}">
+                    {{ item.status }}
+                  </span>
+                </div>
+                <div class="mini-card-details">
+                  <span>📍 {{ item.location }}</span>
+                  <span>🎨 {{ item.color }}</span>
+                  <span>📅 {{ item.date_reported }}</span>
+                </div>
+                <p class="mini-card-desc">{{ item.description[:90] }}{% if item.description|length > 90 %}...{% endif %}</p>
+                <div class="mini-card-actions">
+                  <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-xs btn-outline">Check Matches</a>
+                  {% if item.status == 'Active' %}
+                  <form action="{{ url_for('update_status', item_id=item.id) }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="status" value="Returned">
+                    <button type="submit" class="btn btn-xs btn-success">Mark Returned</button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <p>No lost items reported yet.</p>
+              <a href="{{ url_for('report_lost') }}" class="btn btn-sm btn-danger">+ Report Lost Item</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Recent Found Column -->
+      <div class="column-card">
+        <div class="column-header column-found-header">
+          <h3>📦 Recently Found Items</h3>
+          <span class="badge tag-found">{{ recent_found|length }} shown</span>
+        </div>
+        <div class="column-body">
+          {% if recent_found %}
+            <div class="item-list">
+              {% for item in recent_found %}
+              <div class="item-mini-card">
+                <div class="mini-card-header">
+                  <a href="{{ url_for('item_detail', item_id=item.id) }}" class="mini-card-title">{{ item.title }}</a>
+                  <span class="badge {% if item.status == 'Returned' %}badge-success{% else %}badge-warning{% endif %}">
+                    {{ item.status }}
+                  </span>
+                </div>
+                <div class="mini-card-details">
+                  <span>📍 {{ item.location }}</span>
+                  <span>🎨 {{ item.color }}</span>
+                  <span>📅 {{ item.date_reported }}</span>
+                </div>
+                <p class="mini-card-desc">{{ item.description[:90] }}{% if item.description|length > 90 %}...{% endif %}</p>
+                <div class="mini-card-actions">
+                  <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-xs btn-outline">Check Matches</a>
+                  {% if item.status == 'Active' %}
+                  <form action="{{ url_for('update_status', item_id=item.id) }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="status" value="Returned">
+                    <button type="submit" class="btn btn-xs btn-success">Mark Returned</button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <p>No found items reported yet.</p>
+              <a href="{{ url_for('report_found') }}" class="btn btn-sm btn-primary">+ Report Found Item</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
